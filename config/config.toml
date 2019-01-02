@@ -1,0 +1,8 @@
+[database]
+    [[database.mysql]]
+        name = "default"
+        host = "172.17.0.5"
+        port = 3306
+        passwd = "123456"
+        user = "db_news_video"
+        database = "db_news_video"

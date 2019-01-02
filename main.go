@@ -1,10 +1,13 @@
 package main
 
 import (
-	"github.com/MagicYH/stock-analysis/tools/db"
+	"fmt"
+
+	"github.com/MagicYH/stock-analysis/tools"
 )
 
 func main() {
-	poolConfigs := make([]db.PoolConfig, 0)
-	db.InitPool(poolConfigs)
+	tools.LocdGlobalConfig("/Users/magic/Project/Source/gopath/src/github.com/MagicYH/stock-analysis/config/config.toml")
+	config := tools.GetGlobalConfig()
+	fmt.Printf("%v", config)
 }

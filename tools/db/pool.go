@@ -1,66 +1,47 @@
 package db
 
 import (
+	"database/sql"
 	"fmt"
 
-	"container/list"
-
-	"github.com/MagicYH/stock-analysis/tools/db/connect"
+	"github.com/MagicYH/stock-analysis/tools"
 )
 
-// PoolConfig is use to store config of each connection
-type PoolConfig struct {
-	Name   string
-	Driver string
-	Config []interface{}
-}
-
-// ConnectPool is the acture struct that store connections
-type ConnectPool struct {
-	Driver   string
-	Config   []interface{}
-	Count    int
-	ConnList *list.List
-}
-
-var _connectPools map[string]*ConnectPool
+var _connectPool map[string]*sql.DB
 
 func init() {
-	_connectPools = make(map[string]*ConnectPool)
+	_connectPool = make(map[string]*sql.DB)
 }
 
-// InitPool is used to init pools
-func InitPool(poolConfigs []PoolConfig) {
-	for _, config := range poolConfigs {
-		connectPool := ConnectPool{config.Driver, config.Config, 0, list.New()}
-		_connectPools[config.Name] = &connectPool
+// InitConnection initialize the connection pools
+func InitConnection(config tools.ConfigDb) {
+	if len(config.Mysql) > 0 {
+		for _, conf := range config.Mysql {
+			initMysqlConn(conf.Name, conf.Host, conf.Port, conf.User, conf.Passwd, conf.Database)
+		}
 	}
+	// Add other connection type here
 }
 
-// GetConnect is used to get a new ConnectInterface
-func GetConnect(name string) (connect.ConnectInterface, error) {
-	connectPool, ok := _connectPools[name]
+// GetConnection get the *sql.DB object by connection name
+func GetConnection(name string) (*sql.DB, error) {
+	conn, ok := _connectPool[name]
 	if !ok {
-		return nil, fmt.Errorf("Connect %s not exsist", name)
+		return nil, fmt.Errorf("Connection %s not found", name)
 	}
-
-	var connection connect.ConnectInterface
-	var err error
-	err = nil
-	// May add lock here
-	if connectPool.ConnList.Len() > 0 {
-		element := connectPool.ConnList.Front()
-		connectPool.ConnList.Remove(element)
-		connection = element.Value.(connect.ConnectInterface)
-	} else {
-		connection, err = connect.NewConnect(name, connectPool.Driver, connectPool.Config...)
-		connectPool.Count = connectPool.Count + 1
-	}
-	return connection, err
+	return conn, nil
 }
 
-// ReleaseConnect is used to recycle ConnectInterfacec
-func ReleaseConnect(connection connect.ConnectInterface) {
-	connectPool, _ := _connectPools[connection.GetName()]
-	connectPool.ConnList.PushBack(connection)
+func initMysqlConn(name string, host string, port int, user string, passwd string, database string) {
+	conn, ok := _connectPool[name]
+	if ok {
+		panic("Duplicate connection name: " + name)
+	}
+
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", user, passwd, host, port, database)
+	conn, err := sql.Open("mysql", dsn)
+	if err != nil {
+		panic(fmt.Sprintf("Open database connection %s faile", name))
+	}
+	_connectPool[name] = conn
 }
