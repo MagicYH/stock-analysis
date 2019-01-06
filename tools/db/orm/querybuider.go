@@ -1,6 +1,9 @@
 package orm
 
-import "fmt"
+import (
+	"database/sql"
+	"fmt"
+)
 
 type whereStruct struct {
 	Key   string
@@ -14,7 +17,11 @@ type orderStruct struct {
 }
 
 type QueryBuilder interface {
-	BuildSql() (string, []interface{})
+	Get() []interface{}
+	First() interface{}
+	Insert(interface{}) bool
+	Update(interface{}) bool
+	Delete() bool
 }
 
 type BuilderBase struct {
@@ -25,6 +32,8 @@ type BuilderBase struct {
 	order    []orderStruct
 	offset   int
 	limit    int
+	mode     interface{}
+	conn     *sql.DB
 }
 
 func NewBuilder(driver string) (QueryBuilder, error) {
@@ -36,18 +45,6 @@ func NewBuilder(driver string) (QueryBuilder, error) {
 		return nil, fmt.Errorf("Undefine builder type: %s", driver)
 	}
 	return builder, nil
-}
-
-func (builder *BuilderBase) Get() {
-
-}
-
-func (builder *BuilderBase) Insert() {
-
-}
-
-func (builder *BuilderBase) Update() {
-
 }
 
 func (builder *BuilderBase) Where(key string, op string, value interface{}) *BuilderBase {
