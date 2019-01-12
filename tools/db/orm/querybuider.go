@@ -3,6 +3,7 @@ package orm
 import (
 	"database/sql"
 	"fmt"
+	"reflect"
 )
 
 type whereStruct struct {
@@ -32,7 +33,8 @@ type BuilderBase struct {
 	order    []orderStruct
 	offset   int
 	limit    int
-	mode     interface{}
+	model    interface{}
+	fmap     map[string]string
 	conn     *sql.DB
 }
 
@@ -57,4 +59,13 @@ func (builder *BuilderBase) OrWhere(key string, op string, value interface{}) *B
 	orWhere := whereStruct{key, op, value}
 	builder.orWhere = append(builder.orWhere, orWhere)
 	return builder
+}
+
+func (builder *BuilderBase) parseModel() {
+	builder.fmap = make(map[string]string, 0)
+	elem := reflect.TypeOf(builder.model).Elem()
+	for index := 0; index < elem.NumField(); index++ {
+		field := elem.Field(index)
+		builder.fmap[field.Name] = string(field.Tag)
+	}
 }

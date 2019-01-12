@@ -6,8 +6,8 @@ type MysqlBuilder struct {
 	BuilderBase
 }
 
-func NewMysqlBuilder(conn *sql.DB, mode interface{}) *MysqlBuilder {
-	return &MysqlBuilder{BuilderBase: BuilderBase{conn: conn, mode: mode}}
+func NewMysqlBuilder(conn *sql.DB, model interface{}) *MysqlBuilder {
+	return &MysqlBuilder{BuilderBase: BuilderBase{conn: conn, model: model}}
 }
 
 func (builder *MysqlBuilder) Get() []interface{} {
