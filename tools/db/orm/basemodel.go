@@ -1,5 +1,7 @@
 package orm
 
 type BaseModel struct {
-	QueryBuilder
+	Model interface{}
+	Conn  string
+	Table string
 }

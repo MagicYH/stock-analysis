@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"reflect"
+	"regexp"
 )
 
 type whereStruct struct {
@@ -18,24 +19,25 @@ type orderStruct struct {
 }
 
 type QueryBuilder interface {
-	Get() []interface{}
-	First() interface{}
+	Get() ([]interface{}, error)
+	First() (interface{}, error)
 	Insert(interface{}) bool
 	Update(interface{}) bool
 	Delete() bool
 }
 
 type BuilderBase struct {
-	andWhere []whereStruct
-	orWhere  []whereStruct
-	field    []string
-	group    []string
-	order    []orderStruct
-	offset   int
-	limit    int
-	model    interface{}
-	fmap     map[string]string
-	conn     *sql.DB
+	andWhere  []whereStruct
+	orWhere   []whereStruct
+	field     []string
+	group     []string
+	order     []orderStruct
+	offset    int
+	limit     int
+	model     BaseModel
+	fmap      map[string]string
+	conn      *sql.DB
+	queryData []interface{}
 }
 
 func NewBuilder(driver string) (QueryBuilder, error) {
@@ -63,9 +65,21 @@ func (builder *BuilderBase) OrWhere(key string, op string, value interface{}) *B
 
 func (builder *BuilderBase) parseModel() {
 	builder.fmap = make(map[string]string, 0)
-	elem := reflect.TypeOf(builder.model).Elem()
+	elem := reflect.TypeOf(builder.model.Model).Elem()
+	reg := regexp.MustCompile(`^[A-Z]`)
 	for index := 0; index < elem.NumField(); index++ {
 		field := elem.Field(index)
-		builder.fmap[field.Name] = string(field.Tag)
+		name := field.Name
+		tag := string(field.Tag)
+
+		// 仅公共变量做记录
+		if reg.MatchString(name) {
+			builder.fmap[tag] = field.Name
+		}
 	}
+}
+
+func (builder *BuilderBase) newModeObj() interface{} {
+	modelType := reflect.TypeOf(builder.model.Model)
+	return reflect.New(modelType)
 }
