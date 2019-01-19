@@ -3,6 +3,7 @@ package orm
 import (
 	"database/sql"
 	"fmt"
+	"reflect"
 	"strings"
 )
 
@@ -19,15 +20,47 @@ func (builder *MysqlBuilder) Get() ([]interface{}, error) {
 	strWhere := builder.getStrWhere()
 	sql := fmt.Sprintf("SELECT %s FROM %s WHERE %s", strField, builder.model.Table, strWhere)
 
+	modelType := reflect.TypeOf(builder.model.Model)
 	rows, err := builder.conn.Query(sql, builder.queryData...)
 	defer rows.Close()
 	if err != nil {
 		return make([]interface{}, 0), err
 	}
 
-	for rows.Next() {
-
+	fields, err := rows.Columns()
+	if err != nil {
+		return make([]interface{}, 0), err
 	}
+
+	buffer := make([]interface{}, len(fields))
+	output := make([]interface{}, 0)
+	for rows.Next() {
+		obj := reflect.New(modelType)
+		for i := 0; i < len(fields); i++ {
+			fieldName := builder.fmap[fields[i]]
+			objField := obj.Elem().FieldByName(fieldName)
+			buffer[i] = objField.Pointer()
+		}
+		rows.Scan(buffer...)
+		output = append(output, obj)
+	}
+	return output, nil
+}
+
+func (builder *MysqlBuilder) First() (interface{}, error) {
+	return nil, nil
+}
+
+func (builder *MysqlBuilder) Insert(interface{}) bool {
+	return true
+}
+
+func (builder *MysqlBuilder) Update(interface{}) bool {
+	return true
+}
+
+func (builder *MysqlBuilder) Delete() bool {
+	return true
 }
 
 func (builder *MysqlBuilder) getStrField() string {
